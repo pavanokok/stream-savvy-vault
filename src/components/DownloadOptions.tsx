@@ -1,33 +1,92 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Check, Download } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { 
+  getAvailableFormats, 
+  downloadVideo, 
+  recordDownload 
+} from "@/utils/videoUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DownloadOptionsProps {
   videoUrl: string;
 }
 
 const DownloadOptions = ({ videoUrl }: DownloadOptionsProps) => {
-  const [format, setFormat] = useState("mp4");
-  const [quality, setQuality] = useState("720p");
+  const [formats, setFormats] = useState<any[]>([]);
+  const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
+  const [selectedQuality, setSelectedQuality] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
-  const handleDownload = () => {
+  // Get current user session
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user);
+    };
+    fetchUser();
+  }, []);
+
+  // Fetch available formats when component mounts
+  useEffect(() => {
+    const loadFormats = async () => {
+      try {
+        const availableFormats = await getAvailableFormats(videoUrl);
+        setFormats(availableFormats);
+      } catch (error) {
+        toast.error('Could not load video formats');
+      }
+    };
+    loadFormats();
+  }, [videoUrl]);
+
+  const handleDownload = async () => {
+    if (!selectedFormat || !selectedQuality) {
+      toast.error('Please select a format and quality');
+      return;
+    }
+
     setIsDownloading(true);
     
-    // In a real app, this would trigger an API call to download the video
-    // For now, we'll just simulate a delay and show a success message
-    
-    toast.info(`Starting download in ${format} format at ${quality} quality`);
-    
-    setTimeout(() => {
+    try {
+      // In a real app, you'd have an actual download URL
+      const mockDownloadUrl = `https://example.com/download/${selectedFormat}-${selectedQuality}`;
+      
+      downloadVideo(mockDownloadUrl, `video.${selectedFormat}`);
+      
+      // Record download in Supabase
+      await recordDownload(
+        {
+          id: 'mock-id', 
+          title: 'Sample Video', 
+          thumbnail: 'https://picsum.photos/200', 
+          duration: '10:00', 
+          author: 'Sample Author', 
+          url: videoUrl
+        }, 
+        {
+          id: `${selectedFormat}-${selectedQuality}`,
+          label: `${selectedFormat.toUpperCase()} - ${selectedQuality}`,
+          format: selectedFormat,
+          quality: selectedQuality,
+          size: '25 MB'
+        },
+        user?.id
+      );
+
+      toast.success('Download started!');
+    } catch (error) {
+      toast.error('Download failed');
+      console.error(error);
+    } finally {
       setIsDownloading(false);
-      toast.success("Download completed successfully!");
-    }, 3000);
+    }
   };
 
   return (
@@ -39,26 +98,26 @@ const DownloadOptions = ({ videoUrl }: DownloadOptionsProps) => {
         <div>
           <h3 className="text-sm font-medium text-nova-gray mb-3">Format</h3>
           <RadioGroup 
-            value={format} 
-            onValueChange={setFormat}
+            value={selectedFormat} 
+            onValueChange={setSelectedFormat}
             className="grid grid-cols-2 gap-2 sm:grid-cols-4"
           >
-            {["mp4", "webm", "mp3", "aac"].map((item) => (
-              <div key={item} className="relative">
+            {formats.map((format) => (
+              <div key={format.format} className="relative">
                 <RadioGroupItem 
-                  value={item} 
-                  id={`format-${item}`} 
+                  value={format.format} 
+                  id={`format-${format.format}`} 
                   className="peer sr-only" 
                 />
                 <Label
-                  htmlFor={`format-${item}`}
+                  htmlFor={`format-${format.format}`}
                   className="flex items-center justify-center px-3 py-2 border rounded-md text-center 
                     border-nova-gray/20 bg-nova-dark peer-data-[state=checked]:border-nova-purple 
                     peer-data-[state=checked]:text-nova-purple cursor-pointer transition-all text-sm"
                 >
                   <div className="flex items-center">
-                    {format === item && <Check className="w-3 h-3 mr-2" />}
-                    <span>{item.toUpperCase()}</span>
+                    {selectedFormat === format.format && <Check className="w-3 h-3 mr-2" />}
+                    <span>{format.format.toUpperCase()}</span>
                   </div>
                 </Label>
               </div>
@@ -70,26 +129,26 @@ const DownloadOptions = ({ videoUrl }: DownloadOptionsProps) => {
         <div>
           <h3 className="text-sm font-medium text-nova-gray mb-3">Quality</h3>
           <RadioGroup 
-            value={quality} 
-            onValueChange={setQuality}
+            value={selectedQuality} 
+            onValueChange={setSelectedQuality}
             className="grid grid-cols-2 gap-2 sm:grid-cols-4"
           >
-            {["360p", "480p", "720p", "1080p"].map((item) => (
-              <div key={item} className="relative">
+            {["360p", "480p", "720p", "1080p"].map((quality) => (
+              <div key={quality} className="relative">
                 <RadioGroupItem 
-                  value={item} 
-                  id={`quality-${item}`} 
+                  value={quality} 
+                  id={`quality-${quality}`} 
                   className="peer sr-only" 
                 />
                 <Label
-                  htmlFor={`quality-${item}`}
+                  htmlFor={`quality-${quality}`}
                   className="flex items-center justify-center px-3 py-2 border rounded-md text-center 
                     border-nova-gray/20 bg-nova-dark peer-data-[state=checked]:border-nova-purple 
                     peer-data-[state=checked]:text-nova-purple cursor-pointer transition-all text-sm"
                 >
                   <div className="flex items-center">
-                    {quality === item && <Check className="w-3 h-3 mr-2" />}
-                    <span>{item}</span>
+                    {selectedQuality === quality && <Check className="w-3 h-3 mr-2" />}
+                    <span>{quality}</span>
                   </div>
                 </Label>
               </div>
@@ -99,7 +158,7 @@ const DownloadOptions = ({ videoUrl }: DownloadOptionsProps) => {
         
         <Button 
           onClick={handleDownload}
-          disabled={isDownloading}
+          disabled={isDownloading || !selectedFormat || !selectedQuality}
           className="w-full bg-nova-purple hover:bg-nova-purple/90 text-white py-6 rounded-xl flex items-center justify-center space-x-2"
         >
           <Download className="h-5 w-5" />
