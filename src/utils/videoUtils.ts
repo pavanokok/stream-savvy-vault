@@ -16,53 +16,62 @@ export interface DownloadFormat {
   format: string;
   quality: string;
   size: string;
+  url: string;
 }
 
-// Simulate fetching video info from a real source
+// Fetch video info from our Supabase Edge Function
 export const fetchVideoInfo = async (url: string): Promise<VideoInfo> => {
-  // In a real app, this would call an external API or backend service
-  const response = await fetch(`/api/video-info?url=${encodeURIComponent(url)}`);
+  const { data, error } = await supabase.functions.invoke('video-info', {
+    body: { url }
+  });
   
-  if (!response.ok) {
+  if (error) {
+    console.error('Error fetching video info:', error);
     throw new Error('Could not fetch video information');
   }
 
-  return response.json();
+  if (data.error) {
+    throw new Error(data.error);
+  }
+
+  return data;
 };
 
-// Get actual available formats for a video
+// Get actual available formats from our Supabase Edge Function
 export const getAvailableFormats = async (url: string): Promise<DownloadFormat[]> => {
-  // In a real app, this would call an external service to get actual formats
-  const response = await fetch(`/api/video-formats?url=${encodeURIComponent(url)}`);
+  const { data, error } = await supabase.functions.invoke('video-formats', {
+    body: { url }
+  });
   
-  if (!response.ok) {
+  if (error) {
+    console.error('Error fetching video formats:', error);
     throw new Error('Could not fetch video formats');
   }
 
-  return response.json();
+  if (data.error) {
+    throw new Error(data.error);
+  }
+
+  return data;
 };
 
-// Record download in Supabase
+// Record download in Supabase using our Edge Function
 export const recordDownload = async (
   videoInfo: VideoInfo, 
   format: DownloadFormat, 
   userId?: string
 ) => {
-  const { data, error } = await supabase
-    .from('download_history')
-    .insert({
-      user_id: userId,
-      video_title: videoInfo.title,
-      video_url: videoInfo.url,
-      thumbnail: videoInfo.thumbnail,
-      format: format.format,
-      quality: format.quality,
-      status: 'completed'
-    });
-
+  const { data, error } = await supabase.functions.invoke('video-download', {
+    body: { videoInfo, format, userId }
+  });
+  
   if (error) {
     console.error('Error recording download:', error);
     throw error;
+  }
+
+  if (data.error) {
+    throw new Error(data.error);
   }
 
   return data;

@@ -95,7 +95,7 @@ const Preview = () => {
           </div>
           
           <div className="lg:col-span-2">
-            <DownloadOptions videoUrl={video.url} />
+            <DownloadOptions videoUrl={video.url} videoInfo={video} />
           </div>
         </div>
       </main>

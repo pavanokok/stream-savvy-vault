@@ -15,6 +15,7 @@ export type Database = {
           format: string
           id: string
           quality: string
+          size: string | null
           status: string | null
           thumbnail: string | null
           user_id: string | null
@@ -26,6 +27,7 @@ export type Database = {
           format: string
           id?: string
           quality: string
+          size?: string | null
           status?: string | null
           thumbnail?: string | null
           user_id?: string | null
@@ -37,6 +39,7 @@ export type Database = {
           format?: string
           id?: string
           quality?: string
+          size?: string | null
           status?: string | null
           thumbnail?: string | null
           user_id?: string | null

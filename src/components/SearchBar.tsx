@@ -5,6 +5,7 @@ import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { fetchVideoInfo } from "@/utils/videoUtils";
 
 const SearchBar = () => {
   const [url, setUrl] = useState("");
@@ -24,7 +25,7 @@ const SearchBar = () => {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!url.trim()) {
@@ -48,24 +49,18 @@ const SearchBar = () => {
 
     setIsLoading(true);
 
-    // In a real app, we would fetch video info here
-    // For now, we'll just simulate a delay
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // Mock data - in a real app, this would come from an API
-      const videoData = {
-        id: "sample-id",
-        title: "Sample Video Title",
-        thumbnail: "https://picsum.photos/seed/video/640/360",
-        duration: "10:30",
-        author: "Sample Author",
-        url: url
-      };
+    try {
+      // Fetch actual video info from our API
+      const videoData = await fetchVideoInfo(url);
       
       // Navigate to preview page with video data
       navigate("/preview", { state: { video: videoData } });
-    }, 1500);
+    } catch (error) {
+      console.error('Error fetching video info:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to fetch video information');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
