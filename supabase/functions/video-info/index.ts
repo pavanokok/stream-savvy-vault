@@ -1,7 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import ytdl from 'https://esm.sh/ytdl-core@4.11.5';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.43.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,20 +37,55 @@ serve(async (req) => {
     let videoInfo;
 
     if (isYouTube) {
-      // Get info from YouTube
-      const info = await ytdl.getInfo(url);
+      // Get YouTube video ID
+      let videoId;
+      if (url.includes('youtube.com/watch?v=')) {
+        videoId = new URL(url).searchParams.get('v');
+      } else if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1].split('?')[0];
+      }
+
+      if (!videoId) {
+        return new Response(
+          JSON.stringify({ error: 'Could not extract YouTube video ID' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Fetch basic video info from YouTube oEmbed API
+      const oembedResponse = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+      
+      if (!oembedResponse.ok) {
+        return new Response(
+          JSON.stringify({ error: 'Could not fetch YouTube video information' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      const oembedData = await oembedResponse.json();
+      
+      // Fetch additional info from the video page
+      const videoPageResponse = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
+      const videoPageHtml = await videoPageResponse.text();
+      
+      // Extract duration (approximate)
+      let duration = "Unknown";
+      const durationMatch = videoPageHtml.match(/"lengthSeconds":"(\d+)"/);
+      if (durationMatch && durationMatch[1]) {
+        const seconds = parseInt(durationMatch[1]);
+        duration = formatDuration(seconds);
+      }
       
       videoInfo = {
-        id: info.videoDetails.videoId,
-        title: info.videoDetails.title,
-        thumbnail: info.videoDetails.thumbnails[0]?.url || '',
-        duration: formatDuration(parseInt(info.videoDetails.lengthSeconds)),
-        author: info.videoDetails.author.name,
+        id: videoId,
+        title: oembedData.title,
+        thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+        duration: duration,
+        author: oembedData.author_name,
         url: url
       };
     } else if (isInstagram) {
-      // For Instagram, we would need a different library or API
-      // For now, return a placeholder with the URL for demonstration
+      // For Instagram, we would need a different approach
       return new Response(
         JSON.stringify({ error: 'Instagram videos are not yet supported' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

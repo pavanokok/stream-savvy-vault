@@ -21,38 +21,48 @@ export interface DownloadFormat {
 
 // Fetch video info from our Supabase Edge Function
 export const fetchVideoInfo = async (url: string): Promise<VideoInfo> => {
-  const { data, error } = await supabase.functions.invoke('video-info', {
-    body: { url }
-  });
-  
-  if (error) {
+  try {
+    const { data, error } = await supabase.functions.invoke('video-info', {
+      body: { url }
+    });
+    
+    if (error) {
+      console.error('Error fetching video info:', error);
+      throw new Error('Could not fetch video information');
+    }
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    return data;
+  } catch (error) {
     console.error('Error fetching video info:', error);
-    throw new Error('Could not fetch video information');
+    throw error;
   }
-
-  if (data.error) {
-    throw new Error(data.error);
-  }
-
-  return data;
 };
 
 // Get actual available formats from our Supabase Edge Function
 export const getAvailableFormats = async (url: string): Promise<DownloadFormat[]> => {
-  const { data, error } = await supabase.functions.invoke('video-formats', {
-    body: { url }
-  });
-  
-  if (error) {
+  try {
+    const { data, error } = await supabase.functions.invoke('video-formats', {
+      body: { url }
+    });
+    
+    if (error) {
+      console.error('Error fetching video formats:', error);
+      throw new Error('Could not fetch video formats');
+    }
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    return data;
+  } catch (error) {
     console.error('Error fetching video formats:', error);
-    throw new Error('Could not fetch video formats');
+    throw error;
   }
-
-  if (data.error) {
-    throw new Error(data.error);
-  }
-
-  return data;
 };
 
 // Record download in Supabase using our Edge Function
@@ -82,6 +92,7 @@ export const downloadVideo = (videoUrl: string, filename: string) => {
   const link = document.createElement('a');
   link.href = videoUrl;
   link.download = filename;
+  link.target = "_blank";
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
