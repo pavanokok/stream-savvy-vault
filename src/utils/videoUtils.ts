@@ -70,7 +70,7 @@ export const recordDownload = async (
   videoInfo: VideoInfo, 
   format: DownloadFormat, 
   userId?: string
-) => {
+): Promise<{ downloadUrl: string, fileName: string }> => {
   const { data, error } = await supabase.functions.invoke('video-download', {
     body: { videoInfo, format, userId }
   });
@@ -88,12 +88,37 @@ export const recordDownload = async (
 };
 
 // Trigger browser download
-export const downloadVideo = (videoUrl: string, filename: string) => {
-  const link = document.createElement('a');
-  link.href = videoUrl;
-  link.download = filename;
-  link.target = "_blank";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+export const downloadVideo = async (videoUrl: string, filename: string) => {
+  try {
+    // Start the file download using browser's download capability
+    const response = await fetch(videoUrl);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    
+    // Get the blob from the response
+    const blob = await response.blob();
+    
+    // Create a URL for the blob
+    const blobUrl = window.URL.createObjectURL(blob);
+    
+    // Create a link element
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    
+    // Click the link to trigger the download
+    link.click();
+    
+    // Clean up
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+    
+    return true;
+  } catch (error) {
+    console.error('Download error:', error);
+    throw error;
+  }
 };

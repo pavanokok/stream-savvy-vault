@@ -23,12 +23,16 @@ serve(async (req) => {
       );
     }
 
+    // Generate safe filename
+    const fileName = `${videoInfo.title.replace(/[^\w\s]/gi, '')}.${format.format}`;
+
     // Record download in Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data, error } = await supabase
+    // Insert download record
+    const { error } = await supabase
       .from('download_history')
       .insert({
         user_id: userId,
@@ -45,11 +49,19 @@ serve(async (req) => {
       console.error('Error recording download:', error);
     }
 
+    // For YouTube URLs, we'll create a download URL with the proper format
+    // In a production app, you would use a proper YouTube downloader service or API
+    const videoId = videoInfo.id;
+    
+    // This is a simplified approach - in production, you'd use a real downloader service
+    // Here we're creating a direct download URL for demonstration purposes
+    const downloadUrl = `https://lovable-youtube-downloader.vercel.app/api/download?videoId=${videoId}&format=${format.format}&quality=${format.quality}`;
+
     return new Response(
       JSON.stringify({ 
         success: true, 
-        downloadUrl: format.url,
-        fileName: `${videoInfo.title.replace(/[^\w\s]/gi, '')}.${format.format}`
+        downloadUrl,
+        fileName
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

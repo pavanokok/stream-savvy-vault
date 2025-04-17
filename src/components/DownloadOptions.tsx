@@ -105,8 +105,8 @@ const DownloadOptions = ({ videoUrl, videoInfo }: DownloadOptionsProps) => {
       
       setDownloadProgress(60); // Update progress
       
-      // Start the download
-      downloadVideo(
+      // Start the actual download
+      await downloadVideo(
         downloadData.downloadUrl,
         downloadData.fileName
       );
