@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface VideoInfo {
@@ -85,7 +84,15 @@ export const recordDownload = async (
       throw new Error(data.error);
     }
 
-    return data;
+    // For now, return YouTube URL since we need a separate service for yt-dlp
+    return {
+      downloadUrl: `https://www.youtube.com/watch?v=${videoInfo.id}`,
+      fileName: `${videoInfo.title}.${format.format}`,
+      videoId: videoInfo.id,
+      format: format.format,
+      quality: format.quality,
+      directDownload: false
+    };
   } catch (error) {
     console.error('Error recording download:', error);
     throw error;
