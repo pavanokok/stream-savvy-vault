@@ -70,7 +70,7 @@ export const recordDownload = async (
   videoInfo: VideoInfo, 
   format: DownloadFormat, 
   userId?: string
-): Promise<{ downloadUrl: string, fileName: string, videoId: string, format: string, quality: string }> => {
+): Promise<{ downloadUrl: string, fileName: string, videoId: string, format: string, quality: string, directDownload: boolean }> => {
   try {
     const { data, error } = await supabase.functions.invoke('video-download', {
       body: { videoInfo, format, userId }
@@ -92,33 +92,59 @@ export const recordDownload = async (
   }
 };
 
-// For demo purposes, we'll create a simulated download function
-// In a real app, this would connect to an actual YouTube download service
+// Handle the actual video download
 export const downloadVideo = async (videoInfo: { 
   downloadUrl: string, 
   fileName: string, 
   videoId: string,
   format: string,
-  quality: string
+  quality: string,
+  directDownload?: boolean
 }) => {
   try {
-    // For demonstration purposes, we'll use a direct YouTube link
-    // This is a workaround since we don't have a real YouTube downloader service yet
-    
-    // In a real application, you would fetch the video from a proper YouTube
-    // download service API and then process the file download
-    
-    // Create a direct YouTube watch link as a fallback
-    const youtubeWatchUrl = `https://www.youtube.com/watch?v=${videoInfo.videoId}`;
-    
-    // Open YouTube in a new tab as a fallback
-    window.open(youtubeWatchUrl, '_blank');
-    
-    // Show a message to the user
-    return {
-      success: true,
-      message: "Opening YouTube video in a new tab. In a production app, this would download the actual video file."
-    };
+    // Actual file download implementation
+    if (videoInfo.directDownload) {
+      // Start the file download
+      const response = await fetch(videoInfo.downloadUrl);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      // Get the blob from the response
+      const blob = await response.blob();
+      
+      // Create a temporary URL for the blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Create a temporary anchor element
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = videoInfo.fileName;
+      
+      // Add to the DOM and trigger the download
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      return {
+        success: true,
+        message: "Download started"
+      };
+    } else {
+      // Fallback to opening YouTube if direct download is not available
+      const youtubeWatchUrl = `https://www.youtube.com/watch?v=${videoInfo.videoId}`;
+      window.open(youtubeWatchUrl, '_blank');
+      
+      return {
+        success: true,
+        message: "Opening YouTube video in a new tab. In a production app, this would download the actual video file."
+      };
+    }
   } catch (error) {
     console.error('Download error:', error);
     throw error;

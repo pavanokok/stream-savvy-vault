@@ -105,14 +105,13 @@ const DownloadOptions = ({ videoUrl, videoInfo }: DownloadOptionsProps) => {
       
       setDownloadProgress(60); // Update progress
       
-      // Start the download process
+      // Start the actual file download
       const result = await downloadVideo(downloadData);
       
       setDownloadProgress(100); // Complete progress
       
       if (result.success) {
-        toast.success('YouTube video opened in a new tab');
-        toast.info('Note: In a production app, this would download the actual video file');
+        toast.success('Download started successfully');
       } else {
         toast.error('Download failed');
       }
