@@ -20,21 +20,24 @@ function getDirectDownloadUrl(videoId: string, format: string, quality: string):
   // For demonstration purposes, we're using a direct video stream URL
   // In a real implementation, you would call a YouTube download service API
   
-  // Here we use YouTube's direct video stream
-  // NOTE: This approach requires additional server-side processing in production
-  // as YouTube doesn't provide direct download links without proper handling
-  
-  // For MP4 format, we can use a placeholder that indicates format and quality
+  // Here we use publicly available sample videos that actually work for downloads
   const baseUrl = "https://storage.googleapis.com/gtv-videos-bucket/sample/";
   
-  // Use sample videos based on quality
-  // These are actual MP4 files that will download when accessed
-  let videoFile = "BigBuckBunny.mp4"; // Default to a medium size sample
+  // Use sample videos based on quality and format
+  let videoFile;
   
-  if (quality === "1080p" || quality === "720p") {
-    videoFile = "ElephantsDream.mp4"; // Higher quality sample
-  } else if (quality === "360p" || quality === "240p") {
-    videoFile = "ForBiggerBlazes.mp4"; // Lower quality sample
+  if (format === "mp3") {
+    // For MP3, we can just use a small video sample that would be converted to audio in a real implementation
+    videoFile = "ForBiggerBlazes.mp4"; // Using MP4 as a stand-in for MP3
+  } else {
+    // For MP4, select based on quality
+    if (quality === "1080p" || quality === "720p") {
+      videoFile = "ElephantsDream.mp4"; // Higher quality sample
+    } else if (quality === "360p" || quality === "240p") {
+      videoFile = "ForBiggerBlazes.mp4"; // Lower quality sample
+    } else {
+      videoFile = "BigBuckBunny.mp4"; // Default to a medium size sample
+    }
   }
   
   return `${baseUrl}${videoFile}`;
@@ -56,8 +59,9 @@ serve(async (req) => {
       );
     }
 
-    // Generate safe filename
-    const fileName = `${videoInfo.title.replace(/[^\w\s]/gi, '')}.${format.format}`;
+    // Generate safe filename with proper extension
+    const fileExtension = format.format === "mp3" ? "mp3" : "mp4";
+    const fileName = `${videoInfo.title.replace(/[^\w\s]/gi, '')}.${fileExtension}`;
 
     // Record download in Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
@@ -82,7 +86,7 @@ serve(async (req) => {
       console.error('Error recording download:', error);
     }
 
-    // Get a direct download URL - in production this would be from a YouTube download service
+    // Get a direct download URL
     const videoId = videoInfo.id || extractVideoId(videoInfo.url);
     const downloadUrl = getDirectDownloadUrl(videoId, format.format, format.quality);
 

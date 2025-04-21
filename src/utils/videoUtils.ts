@@ -102,7 +102,7 @@ export const downloadVideo = async (videoInfo: {
   directDownload?: boolean
 }) => {
   try {
-    // Actual file download implementation
+    // If it's a direct download, we'll use the browser's fetch API
     if (videoInfo.directDownload) {
       // Start the file download
       const response = await fetch(videoInfo.downloadUrl);
@@ -136,7 +136,7 @@ export const downloadVideo = async (videoInfo: {
         message: "Download started"
       };
     } else {
-      // Fallback to opening YouTube if direct download is not available
+      // Open YouTube as a fallback if direct download isn't available
       const youtubeWatchUrl = `https://www.youtube.com/watch?v=${videoInfo.videoId}`;
       window.open(youtubeWatchUrl, '_blank');
       
