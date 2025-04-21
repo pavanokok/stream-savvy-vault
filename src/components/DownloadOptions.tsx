@@ -96,7 +96,7 @@ const DownloadOptions = ({ videoUrl, videoInfo }: DownloadOptionsProps) => {
       
       setDownloadProgress(30); // Update progress
       
-      // Record download and get download URL
+      // Record download and get download info
       const downloadData = await recordDownload(
         videoInfo,
         selectedFormatObj,
@@ -105,14 +105,17 @@ const DownloadOptions = ({ videoUrl, videoInfo }: DownloadOptionsProps) => {
       
       setDownloadProgress(60); // Update progress
       
-      // Start the actual download
-      await downloadVideo(
-        downloadData.downloadUrl,
-        downloadData.fileName
-      );
+      // Start the download process
+      const result = await downloadVideo(downloadData);
       
       setDownloadProgress(100); // Complete progress
-      toast.success('Download started!');
+      
+      if (result.success) {
+        toast.success('YouTube video opened in a new tab');
+        toast.info('Note: In a production app, this would download the actual video file');
+      } else {
+        toast.error('Download failed');
+      }
     } catch (error) {
       console.error('Download error:', error);
       toast.error(error instanceof Error ? error.message : 'Download failed');
